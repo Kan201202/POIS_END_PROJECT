@@ -105,6 +105,10 @@ def gen_prime(bits: int, k: int = 40) -> int:
         # Start with a random number with the high bit set
         candidate = int.from_bytes(generate((bits + 7) // 8), 'big')
         
+        # If the random value has fewer bits than requested, retry
+        if candidate.bit_length() < bits:
+            continue
+
         # Mask to exactly 'bits' bits and ensure it's odd
         candidate = (candidate >> (candidate.bit_length() - bits)) | (1 << (bits - 1)) | 1
         
