@@ -102,15 +102,14 @@ def gen_prime(bits: int, k: int = 40) -> int:
     
     # Generate random odd number with exactly 'bits' bits
     while True:
-        # Start with a random number with the high bit set
+        # Start with random bytes, then force exact bit-length and odd parity
         candidate = int.from_bytes(generate((bits + 7) // 8), 'big')
         
-        # If the random value has fewer bits than requested, retry
-        if candidate.bit_length() < bits:
-            continue
+        candidate &= (1 << bits) - 1
 
-        # Mask to exactly 'bits' bits and ensure it's odd
-        candidate = (candidate >> (candidate.bit_length() - bits)) | (1 << (bits - 1)) | 1
+        # Ensure exact bit-length by setting the highest bit, and odd by setting LSB
+        candidate |= (1 << (bits - 1))
+        candidate |= 1
         
         # Ensure it's exactly 'bits' bits
         if candidate.bit_length() != bits:

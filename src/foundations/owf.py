@@ -12,8 +12,8 @@ where x_{i+1} = f(x_i) and b is a hard-core predicate
 """
 
 from abc import ABC, abstractmethod
-from src.interfaces.owf import OWF
-from src.interfaces.prg import PRG
+from interfaces.owf import OWF
+from interfaces.prg import PRG
 from src.utils.random_utils import generate
 from src.utils.mod_exp import square_and_multiply
 from src.primality.miller_rabin import gen_prime_safe
@@ -168,67 +168,36 @@ class HILL_PRG(PRG):
     def goldreich_levin_bit(self, x: bytes) -> int:
         """
         Compute Goldreich-Levin hard-core predicate.
-        
         b(x) = <x, r> = sum(x_i * r_i) mod 2
-        
-        Args:
-            x: input bytes
-            
-        Returns:
-            Single bit (0 or 1)
         """
-        # Compute inner product of bits
         result = 0
-        for i in range(min(len(x), len(self.r))):
-            # Extract bits and compute inner product
-            x_bits = x[i // 8]
-            r_bits = self.r[i // 8]
-            
-            x_bit = (x_bits >> (7 - (i % 8))) & 1
-            r_bit = (r_bits >> (7 - (i % 8))) & 1
-            
-            result ^= (x_bit & r_bit)
-        
+        min_bytes = min(len(x), len(self.r))
+        for i in range(min_bytes):
+            # XOR each bit of x[i] AND r[i], accumulate parity
+            result ^= bin(x[i] & self.r[i]).count('1') % 2
         return result
     
     def expand(self, seed: bytes, out_len: int) -> bytes:
         """
-        Expand a seed into pseudorandom bits using HILL construction.
-        
-        Args:
-            seed: input seed
-            out_len: desired output length in bytes
-            
-        Returns:
-            Pseudorandom bytes of length out_len
+        Expand seed into pseudorandom bytes using HILL construction.
         """
-        output = bytearray()
+        bits = []
         current_x = seed
-        
-        # Generate bits until we have enough
-        bits_needed = out_len * 8
-        bits_generated = 0
-        
-        while bits_generated < bits_needed:
-            # Apply hard-core predicate to current x
+
+        while len(bits) < out_len * 8:
             bit = self.goldreich_levin_bit(current_x)
-            output.append(bit >> (7 - (bits_generated % 8)))
-            
-            # Iterate: x_{i+1} = f(x_i)
+            bits.append(bit)
             current_x = self.owf.evaluate(current_x)
-            
-            bits_generated += 1
-        
-        # Convert bit array to bytes
+
+        # Pack bits into bytes
         result = bytearray()
-        for i in range(0, len(output), 8):
+        for i in range(out_len):
             byte = 0
             for j in range(8):
-                if i + j < bits_needed:
-                    byte = (byte << 1) | (1 if output[i + j] else 0)
+                byte = (byte << 1) | bits[i * 8 + j]
             result.append(byte)
-        
-        return bytes(result[:out_len])
+
+        return bytes(result)
     
     def get_seed_length(self) -> int:
         """Returns the seed length (32 bytes for DLP-based OWF)."""

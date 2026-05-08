@@ -11,7 +11,7 @@ Define PRF: F_k(b_1 b_2 ... b_n) = G_{b_n}(...G_{b_2}(G_{b_1}(k))...)
 This is a binary tree of depth n where each leaf is indexed by an n-bit input.
 """
 
-from src.interfaces.prf import PRF
+from interfaces.prf import PRF
 from src.foundations.owf import HILL_PRG
 from src.utils.random_utils import generate
 
